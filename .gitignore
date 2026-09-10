@@ -1,0 +1,26 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+build/
+dist/
+.venv/
+venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# bootcode CLI runtime artifacts
+.bootcode/
+bootcode-submit-debug-*.txt
+
+# Internal design/planning docs -- kept local only
+docs/
+
+# Editor/OS
+.DS_Store
+.vscode/
+
+# Local config/secrets
+.env
