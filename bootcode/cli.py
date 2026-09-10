@@ -148,7 +148,7 @@ def status() -> None:
 @click.argument("key")
 @click.argument("value")
 def configure(key: str, value: str) -> None:
-    """Change a local setting, such as which server the CLI talks to.
+    """Change a local setting.
 
     Usage: bootcode configure <key> <value>, where <key> is one of api_url,
     frontend_url or cli_token. For example:
@@ -179,7 +179,11 @@ def logout() -> None:
 @cli.command()
 @click.argument("course_stage")
 def pull(course_stage: str) -> None:
-    """Download a stage's starter files and tests into the current directory."""
+    """Download a stage's files into this directory.
+
+    Writes the stage's starter code and its test file here, so you can edit
+    the starter code and run the tests locally before submitting.
+    """
     course_slug, _, stage_slug = course_stage.partition("/")
     if not stage_slug:
         raise click.ClickException("expected <course-slug>/<stage-slug>")
@@ -264,7 +268,11 @@ def _write_pulled_files(target_dir: Path, files: list[dict]) -> list[str]:
 
 @cli.command()
 def run() -> None:
-    """Run this stage's tests locally -- no network, nothing is submitted."""
+    """Run this stage's tests locally.
+
+    No network, nothing is submitted -- use this to check your work before
+    running bootcode submit.
+    """
     try:
         stage = Stage.load()
     except FileNotFoundError as exc:
