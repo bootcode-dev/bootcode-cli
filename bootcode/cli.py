@@ -1,11 +1,27 @@
 """``bootcode`` command-line entry point.
 
-``login``/``status``/``configure`` are verified end-to-end against a real
-running bootcode-app (``login`` needed a real fix, see its own docstring:
-two response-shape assumptions were wrong and the required ``/exchange``
-call was missing entirely). ``pull``/``run``/``submit`` are implemented
-against this repo's own cli-hidden protocol (authoritative -- we're the ones
-designing that server behavior) and are likewise verified end-to-end.
+Click renders each command's docstring verbatim as that command's ``--help``
+text, so the command docstrings below are written for students: no
+reStructuredText markup (Click does not parse it) and no internal protocol
+detail. Notes that only make sense to someone working on this repo belong
+here in the module docstring, or in inline comments next to the code they
+describe.
+
+Implementation notes
+--------------------
+
+``login`` is three server calls, not two. ``POST .../login-codes`` only ever
+returns ``{code}`` -- there is no ``verification_url`` field, it is built
+locally from ``Config.frontend_url``; ``GET .../login-codes/{code}`` only
+ever returns ``{status}``, never a token; and the ``cli_token`` is minted
+exactly once by ``POST .../login-codes/{code}/exchange``, which also records
+the local hostname as the device name shown in the web UI's
+"CLI 登录设备" list. A final ``whoami`` call confirms the new token works and
+supplies the handle to print. (An earlier version of this module assumed a
+two-call flow and read a ``verification_url``/token out of the wrong
+responses -- both assumptions were wrong.)
+
+All commands are verified end-to-end against a real running bootcode-app.
 """
 
 from __future__ import annotations
@@ -45,22 +61,21 @@ except PackageNotFoundError:  # pragma: no cover -- only when run from an uninst
 @click.group()
 @click.version_option(_VERSION, prog_name="bootcode")
 def cli() -> None:
-    """bootcode -- pull/run/submit workflow for cli-hidden stages."""
+    """Pull course stages, run their tests locally, and submit your results.
+
+    A typical session: log in once with bootcode login, then for each stage
+    run bootcode pull to fetch its files, bootcode run to check your work
+    offline, and bootcode submit to send it in for grading.
+    """
 
 
 @cli.command()
 def login() -> None:
-    """Log in via a one-time code + browser.
+    """Log in through your browser.
 
-    Three server calls, not two: POST .../login-codes only ever returns
-    {code} (no verification_url -- built locally from frontend_url, which
-    today is the same domain as api_url, see config.py); GET
-    .../login-codes/{code} only ever returns {status} (never a token); the
-    actual cli_token is only minted once, by POST
-    .../login-codes/{code}/exchange (sending the local hostname as the
-    device name shown in the Web "CLI 登录设备" list), after
-    status == "confirmed" -- then whoami confirms the token actually works
-    and gets the handle to print (mirrors the archived Go CLI's runLogin).
+    Prints a one-time code, opens the login page, and waits for you to
+    confirm. Once confirmed, the credentials are saved on this machine and
+    this command finishes by itself.
     """
     config = Config.load()
     response = requests.post(f"{config.api_url}/api/cli/login-codes", timeout=30)
@@ -114,7 +129,7 @@ def login() -> None:
 
 @cli.command()
 def status() -> None:
-    """Show the current login status."""
+    """Show which account you are currently logged in as."""
     config = Config.load()
     if not config.cli_token:
         raise click.ClickException("not logged in -- run `bootcode login`")
@@ -133,7 +148,13 @@ def status() -> None:
 @click.argument("key")
 @click.argument("value")
 def configure(key: str, value: str) -> None:
-    """Set a config value, e.g. bootcode configure api_url http://localhost:3000."""
+    """Change a local setting, such as which server the CLI talks to.
+
+    Usage: bootcode configure <key> <value>, where <key> is one of api_url,
+    frontend_url or cli_token. For example:
+
+        bootcode configure api_url http://localhost:3000
+    """
     config = Config.load()
     if not hasattr(config, key):
         raise click.ClickException(f"unknown config key: {key!r}")
@@ -144,10 +165,10 @@ def configure(key: str, value: str) -> None:
 
 @cli.command()
 def logout() -> None:
-    """Remove the locally stored CLI token.
+    """Log out on this machine.
 
-    There is no "revoke my own token" endpoint -- revocation happens from
-    the Web UI's CLI devices page, same as the archived Go CLI's logout.
+    Removes the credential stored on this computer. To revoke a device
+    entirely, remove it from the CLI devices page on the website.
     """
     config = Config.load()
     config.cli_token = ""
@@ -158,7 +179,7 @@ def logout() -> None:
 @cli.command()
 @click.argument("course_stage")
 def pull(course_stage: str) -> None:
-    """Pull a stage's files into the current directory."""
+    """Download a stage's starter files and tests into the current directory."""
     course_slug, _, stage_slug = course_stage.partition("/")
     if not stage_slug:
         raise click.ClickException("expected <course-slug>/<stage-slug>")
@@ -243,7 +264,7 @@ def _write_pulled_files(target_dir: Path, files: list[dict]) -> list[str]:
 
 @cli.command()
 def run() -> None:
-    """Run the current stage's local tests -- no network."""
+    """Run this stage's tests locally -- no network, nothing is submitted."""
     try:
         stage = Stage.load()
     except FileNotFoundError as exc:
@@ -313,8 +334,12 @@ def _write_submit_debug_file(
     help="Write the raw submission request/response to a local debug file.",
 )
 def submit(debug_: bool) -> None:
-    """Run the current stage's grading function locally, then send all the
-    collected values to the server in a single request."""
+    """Submit your work for grading.
+
+    Runs the stage's grading function on your machine, then sends the
+    collected values to the server in a single request. Failing costs
+    nothing -- fix your code and submit again.
+    """
     config = Config.load()
     try:
         stage = Stage.load()
