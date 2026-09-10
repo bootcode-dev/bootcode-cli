@@ -131,8 +131,7 @@ def test_pull_overwrites_an_existing_local_file_when_files_yml_opts_in(tmp_path,
 
 def test_pull_writes_a_binary_file_as_raw_bytes_from_base64(tmp_path, monkeypatch):
     # binary: true files carry base64 in `content` -- must round-trip to the
-    # exact original bytes, not the base64 text itself (see 00-design.md's
-    # binary-files doc and app/api/cli/.../route.ts's `binary` passthrough).
+    # exact original bytes, not the base64 text itself.
     monkeypatch.chdir(tmp_path)
     monkeypatch.setenv("BOOTCODE_CONFIG_DIR", str(tmp_path / "config"))
     raw_bytes = bytes(range(256))
@@ -414,10 +413,10 @@ def test_submit_raises_when_the_server_rejects_the_batch(tmp_path, monkeypatch):
 
     assert result.exit_code != 0
     assert "Traceback" not in result.output
-    # A genuine wrong-answer rejection is its own distinct branch (docs/
-    # 00-design.md Sec 4.1) -- the per-index table above already shows what
-    # failed, so the server's own (arbitrary) message text is deliberately
-    # NOT echoed here, unlike the generic-error fallback branch.
+    # A genuine wrong-answer rejection is its own distinct branch -- the
+    # per-index table above already shows what failed, so the server's own
+    # (arbitrary) message text is deliberately NOT echoed here, unlike the
+    # generic-error fallback branch.
     assert "submission rejected (0/2 correct)" in result.output
     assert "nope" not in result.output
 

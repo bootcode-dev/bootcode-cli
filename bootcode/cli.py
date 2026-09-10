@@ -1,12 +1,11 @@
-"""``bootcode`` command-line entry point (docs/00-design.md Sec 4).
+"""``bootcode`` command-line entry point.
 
 ``login``/``status``/``configure`` are verified end-to-end against a real
-running bootcode-app (Phase 3 -- ``login`` needed a real fix, see its own
-docstring: two response-shape assumptions were wrong and the required
-``/exchange`` call was missing entirely). ``pull``/``run``/``submit`` are
-implemented against this repo's own Sec 3.1/3.2 protocol (authoritative --
-we're the ones designing that server behavior), also verified end-to-end in
-Phase 3.
+running bootcode-app (``login`` needed a real fix, see its own docstring:
+two response-shape assumptions were wrong and the required ``/exchange``
+call was missing entirely). ``pull``/``run``/``submit`` are implemented
+against this repo's own cli-hidden protocol (authoritative -- we're the ones
+designing that server behavior) and are likewise verified end-to-end.
 """
 
 from __future__ import annotations
@@ -51,7 +50,7 @@ def cli() -> None:
 
 @cli.command()
 def login() -> None:
-    """Log in via a one-time code + browser (docs/00-design.md Sec 1.2).
+    """Log in via a one-time code + browser.
 
     Three server calls, not two: POST .../login-codes only ever returns
     `{code}` (no verification_url -- built locally from `frontend_url`,
@@ -115,7 +114,7 @@ def login() -> None:
 
 @cli.command()
 def status() -> None:
-    """Show the current login status (docs/00-design.md Sec 1.2)."""
+    """Show the current login status."""
     config = Config.load()
     if not config.cli_token:
         raise click.ClickException("not logged in -- run `bootcode login`")
@@ -145,7 +144,7 @@ def configure(key: str, value: str) -> None:
 
 @cli.command()
 def logout() -> None:
-    """Remove the locally stored CLI token (docs/00-design.md Sec 1.2).
+    """Remove the locally stored CLI token.
 
     There is no "revoke my own token" endpoint -- revocation happens from
     the Web UI's CLI devices page, same as the archived Go CLI's logout.
@@ -159,7 +158,7 @@ def logout() -> None:
 @cli.command()
 @click.argument("course_stage")
 def pull(course_stage: str) -> None:
-    """Pull a stage's files into the current directory (Sec 3.1)."""
+    """Pull a stage's files into the current directory."""
     course_slug, _, stage_slug = course_stage.partition("/")
     if not stage_slug:
         raise click.ClickException("expected <course-slug>/<stage-slug>")
@@ -223,8 +222,8 @@ def _write_pulled_files(target_dir: Path, files: list[dict]) -> list[str]:
     content author hasn't opted it into files.yml's ``overwrite: true``
     (default false -- protects a student's in-progress edits on re-pull).
     ``binary: true`` files have their ``content`` base64-decoded and written
-    as raw bytes instead of text (see docs/binary-files/00-design.md) --
-    everything else keeps the existing UTF-8 text write path unchanged.
+    as raw bytes instead of text -- everything else keeps the existing UTF-8
+    text write path unchanged.
     ``path`` may contain subdirectories (e.g. ``data/foo.png``) -- the parent
     directory is created as needed. Returns the paths that were left
     untouched."""
@@ -244,7 +243,7 @@ def _write_pulled_files(target_dir: Path, files: list[dict]) -> list[str]:
 
 @cli.command()
 def run() -> None:
-    """Run the current stage's local ``test_<problem>`` -- no network (Sec 0.2 step 3)."""
+    """Run the current stage's local ``test_<problem>`` -- no network."""
     try:
         stage = Stage.load()
     except FileNotFoundError as exc:
@@ -287,9 +286,9 @@ def _write_submit_debug_file(
     api_url: str, course_slug: str, stage_slug: str, values: list, response: requests.Response
 ) -> Path:
     """Write a --debug snapshot of the submission request/response, mirroring
-    archive/bootcode-cli's writeSubmitDebugFile (same filename convention and
+    the old Go CLI's writeSubmitDebugFile (same filename convention and
     section headers, so existing muscle-memory/tooling around that file
-    keeps working -- see docs/00-design.md Sec 4.1)."""
+    keeps working)."""
     timestamp = int(time.time())
     filename = f"bootcode-submit-debug-{course_slug}-{stage_slug}-{timestamp}.txt"
     endpoint = f"{api_url}/api/cli/courses/{course_slug}/stages/{stage_slug}/submit"
@@ -315,9 +314,9 @@ def _write_submit_debug_file(
 )
 def submit(debug_: bool) -> None:
     """Run the current stage's ``submit_<problem>``, collecting every graded
-    value locally, then POST them all in one request (Sec 3.2 batch protocol
-    -- see that section's "批量 vs 流式" rationale for why this replaced the
-    original per-value ``/start`` + ``/submit_test`` streaming protocol)."""
+    value locally, then POST them all in one request (batch protocol -- this
+    replaced an earlier per-value ``/start`` + ``/submit_test`` streaming
+    protocol)."""
     config = Config.load()
     try:
         stage = Stage.load()
@@ -362,10 +361,10 @@ def submit(debug_: bool) -> None:
 
     if not response.ok:
         # Three distinct everyday outcomes, not one generic bucket (mirrors
-        # the archived Go CLI's SubmitRejectedError/STAGE_LOCKED split in
-        # cmd/submit.go -- see docs/00-design.md Sec 4.1): a locked stage, a
-        # genuine wrong-answer rejection (the per-index table above already
-        # shows what failed), or anything else (auth/network/server error).
+        # the old Go CLI's SubmitRejectedError/STAGE_LOCKED split in
+        # cmd/submit.go): a locked stage, a genuine wrong-answer rejection
+        # (the per-index table above already shows what failed), or anything
+        # else (auth/network/server error).
         error = body.get("error") or {}
         if error.get("code") == "STAGE_LOCKED":
             raise click.ClickException("stage is locked -- complete the prerequisite stage(s) first")

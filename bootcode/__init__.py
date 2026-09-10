@@ -1,4 +1,4 @@
-"""bootcode -- CLI for bootcode's cli-hidden grading protocol (docs/00-design.md).
+"""bootcode -- CLI for bootcode's cli-hidden grading protocol.
 
 Adapted stage test files do ``import bootcode`` and call ``bootcode.submit(value)``
 once per graded value inside a ``submit_<problem>`` function -- re-exported here

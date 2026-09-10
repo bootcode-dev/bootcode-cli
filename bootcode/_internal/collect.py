@@ -1,9 +1,8 @@
-"""Build-time answer-key collector (docs/00-design.md Sec 3.3) -- NOT exposed to
-students. Runs a stage's ``submit_<problem>`` function against a reference
-solution module, capturing each value passed to ``bootcode.submit()`` instead
-of sending it anywhere.
+"""Build-time answer-key collector -- NOT exposed to students. Runs a stage's
+``submit_<problem>`` function against a reference solution module, capturing
+each value passed to ``bootcode.submit()`` instead of sending it anywhere.
 
-Invoked by ``build-courses.ts`` as: ``python -m bootcode._internal.collect
+Invoked by the course build pipeline as: ``python -m bootcode._internal.collect
 <tests_file> <solution_file> <problem>``, printing a JSON array to stdout.
 """
 

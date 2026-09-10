@@ -1,4 +1,4 @@
-"""Reads/writes ``~/.config/bootcode/config.toml`` (docs/00-design.md Sec 1.2/4).
+"""Reads/writes ``~/.config/bootcode/config.toml``.
 
 Field names (``cli_token``/``api_url``) intentionally match the old Go CLI's
 config so the two never diverge in spirit, even though this is a fresh

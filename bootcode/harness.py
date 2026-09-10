@@ -1,10 +1,9 @@
 """Reflection-based parameter injection for ``test_*``/``submit_*`` functions.
 
-See docs/00-design.md Sec 1.4: a stage's test file defines e.g. ``submit_add(add)``,
-and the parameter name ``add`` is resolved by attribute lookup on the student's
-solution module (which defines a top-level ``add`` function/class of the same
-name). No pytest, no conftest, no fixtures -- just ``inspect.signature`` +
-``getattr``.
+A stage's test file defines e.g. ``submit_add(add)``, and the parameter name
+``add`` is resolved by attribute lookup on the student's solution module
+(which defines a top-level ``add`` function/class of the same name). No
+pytest, no conftest, no fixtures -- just ``inspect.signature`` + ``getattr``.
 """
 
 from __future__ import annotations

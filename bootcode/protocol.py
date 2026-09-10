@@ -1,4 +1,4 @@
-"""Client-side submission protocol (docs/00-design.md Sec 3.2/3.3).
+"""Client-side submission protocol.
 
 ``encode_json`` turns arbitrary Python values (including numpy arrays/scalars,
 ``datetime``, and ``type`` objects) into a JSON-safe structure the server's
@@ -8,9 +8,8 @@ it delegates to whatever session is currently ``bind()``-ed, so the same
 ``submit_<problem>`` function body works identically for a real graded
 submission (``bootcode submit``) and for the build-time answer-key collector
 (``bootcode._internal.collect``): both are collect-only, no per-value network
-call (Sec 3.2's batch protocol -- ``bootcode submit`` POSTs the whole
-collected list once, via ``submit_batch()`` below, after ``submit_<problem>``
-returns).
+call -- ``bootcode submit`` POSTs the whole collected list once, via
+``submit_batch()`` below, after ``submit_<problem>`` returns).
 """
 
 from __future__ import annotations
@@ -32,8 +31,8 @@ def encode_json(data: Any) -> Any:
     """Recursively encode ``data`` into a JSON-safe structure.
 
     Non-JSON-native types are wrapped in a ``{"_encoded_type": ..., "data": ...}``
-    envelope; the server-side comparator (docs/00-design.md Sec 3.2) decodes the
-    same envelopes before applying exact/tolerance comparison.
+    envelope; the server-side comparator decodes the same envelopes before
+    applying exact/tolerance comparison.
     """
     if isinstance(data, dict):
         return {key: encode_json(value) for key, value in data.items()}
@@ -59,9 +58,8 @@ class _Session(Protocol):
     """Anything with a ``submit_value`` method can be bound as the active
     session. Both the real ``bootcode submit`` flow and the build-time
     collector bind a ``_CollectingSession`` -- there is no networked
-    per-value session anymore (Sec 3.2's batch protocol); the network call
-    happens exactly once, after ``submit_<problem>`` returns, via
-    ``submit_batch()``."""
+    per-value session anymore; the network call happens exactly once, after
+    ``submit_<problem>`` returns, via ``submit_batch()``."""
 
     def submit_value(self, value: Any) -> bool: ...
 
@@ -94,7 +92,7 @@ def bind(session: _Session) -> None:
 def bind_collector(on_value: Callable[[Any], None]) -> None:
     """Convenience wrapper around ``bind()`` -- used both for build-time
     answer-key collection and for a real ``bootcode submit`` run's local
-    value collection (Sec 3.2's batch protocol)."""
+    value collection."""
     bind(_CollectingSession(on_value))
 
 
@@ -104,8 +102,8 @@ def unbind() -> None:
 
 
 def submit(value: Any) -> bool:
-    """Called by adapted ``submit_<problem>`` functions (docs/00-design.md
-    Sec 0.2 step 4). Raises if no session has been bound yet."""
+    """Called by adapted ``submit_<problem>`` functions. Raises if no session
+    has been bound yet."""
     if _active is None:
         raise RuntimeError("bootcode.submit() called with no active session -- run via `bootcode submit`")
     return _active.submit_value(value)
@@ -115,9 +113,8 @@ def submit_batch(
     api_url: str, cli_token: str, course_slug: str, stage_slug: str, values: list[Any]
 ) -> requests.Response:
     """POST every value collected during one ``bootcode submit`` run in a
-    single request (docs/00-design.md Sec 3.2 -- batch, not streaming; see
-    that section's "批量 vs 流式" rationale for why this replaced the
-    original per-value ``/start`` + ``/submit_test`` protocol). ``values``
+    single request (batch, not streaming -- this replaced an earlier
+    per-value ``/start`` + ``/submit_test`` protocol). ``values``
     must already be ``encode_json``-encoded (e.g. collected via
     ``bind_collector``). Returns the raw response -- the caller is
     responsible for both rendering ``response.json()["test_run"]["raw_results"]``

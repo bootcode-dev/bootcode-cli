@@ -1,10 +1,9 @@
-"""Reads/writes ``.bootcode/stage.json`` in the current directory (docs/00-design.md
-Sec 1.3/3.1) -- written by ``bootcode pull``, read by ``bootcode run``/``submit``.
+"""Reads/writes ``.bootcode/stage.json`` in the current directory -- written by
+``bootcode pull``, read by ``bootcode run``/``submit``.
 
-``entry``/``tests_file`` aren't mentioned as separate fields in the design doc's
-prose, but are required in practice: ``run``/``submit`` need to know which local
-files to import without another network round-trip, and one-stage-one-problem
-(Sec 1.3) means there's exactly one of each per stage.
+``entry``/``tests_file`` are required in practice: ``run``/``submit`` need to
+know which local files to import without another network round-trip, and
+one-stage-one-problem means there's exactly one of each per stage.
 """
 
 from __future__ import annotations
