@@ -28,6 +28,7 @@ from __future__ import annotations
 
 import base64
 import json
+import linecache
 import time
 import webbrowser
 from importlib.metadata import PackageNotFoundError, version as _pkg_version
@@ -266,6 +267,37 @@ def _write_pulled_files(target_dir: Path, files: list[dict]) -> list[str]:
     return kept
 
 
+def _innermost_source_line(exc: BaseException) -> str | None:
+    """Return ``"<file>:<line>: <source>"`` for the deepest traceback frame."""
+    tb = exc.__traceback__
+    if tb is None:
+        return None
+    while tb.tb_next is not None:
+        tb = tb.tb_next
+    filename = tb.tb_frame.f_code.co_filename
+    source = linecache.getline(filename, tb.tb_lineno).strip()
+    if not source:
+        return None
+    return f"{Path(filename).name}:{tb.tb_lineno}: {source}"
+
+
+def _failing_assertion_detail(exc: AssertionError) -> str:
+    """Describe a failed ``test_<problem>`` assertion for the student.
+
+    Stage tests generally use a bare ``assert <expr>``, whose AssertionError
+    stringifies to "". A bare exception object is always truthy, so an
+    earlier ``exc or "assertion failed"`` fallback never fired and the
+    student just saw a bare "FAIL: ". Fall back to the failing source line
+    instead -- more useful anyway, since it shows exactly which expectation
+    was not met (the test file is already in the student's own directory, so
+    nothing hidden is revealed).
+    """
+    message = str(exc)
+    if message:
+        return message
+    return _innermost_source_line(exc) or "assertion failed"
+
+
 @cli.command()
 def run() -> None:
     """Run this stage's tests locally.
@@ -283,7 +315,7 @@ def run() -> None:
     try:
         resolve_and_call(test_fn, solution)
     except AssertionError as exc:
-        click.secho(f"FAIL: {exc or 'assertion failed'}", fg="red")
+        click.secho(f"FAIL: {_failing_assertion_detail(exc)}", fg="red")
         raise SystemExit(1) from exc
     except Exception as exc:
         # Not every unimplemented/broken solution fails with AssertionError
