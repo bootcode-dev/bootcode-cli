@@ -53,10 +53,10 @@ def login() -> None:
     """Log in via a one-time code + browser.
 
     Three server calls, not two: POST .../login-codes only ever returns
-    `{code}` (no verification_url -- built locally from `frontend_url`,
-    which today is the same domain as `api_url`, see config.py); GET
-    .../login-codes/{code} only ever returns `{status}` (never a token);
-    the actual `cli_token` is only minted once, by POST
+    {code} (no verification_url -- built locally from frontend_url, which
+    today is the same domain as api_url, see config.py); GET
+    .../login-codes/{code} only ever returns {status} (never a token); the
+    actual cli_token is only minted once, by POST
     .../login-codes/{code}/exchange (sending the local hostname as the
     device name shown in the Web "CLI 登录设备" list), after
     status == "confirmed" -- then whoami confirms the token actually works
@@ -133,7 +133,7 @@ def status() -> None:
 @click.argument("key")
 @click.argument("value")
 def configure(key: str, value: str) -> None:
-    """Set a config value, e.g. ``bootcode configure api_url http://localhost:3000``."""
+    """Set a config value, e.g. bootcode configure api_url http://localhost:3000."""
     config = Config.load()
     if not hasattr(config, key):
         raise click.ClickException(f"unknown config key: {key!r}")
@@ -243,7 +243,7 @@ def _write_pulled_files(target_dir: Path, files: list[dict]) -> list[str]:
 
 @cli.command()
 def run() -> None:
-    """Run the current stage's local ``test_<problem>`` -- no network."""
+    """Run the current stage's local tests -- no network."""
     try:
         stage = Stage.load()
     except FileNotFoundError as exc:
@@ -313,10 +313,8 @@ def _write_submit_debug_file(
     help="Write the raw submission request/response to a local debug file.",
 )
 def submit(debug_: bool) -> None:
-    """Run the current stage's ``submit_<problem>``, collecting every graded
-    value locally, then POST them all in one request (batch protocol -- this
-    replaced an earlier per-value ``/start`` + ``/submit_test`` streaming
-    protocol)."""
+    """Run the current stage's grading function locally, then send all the
+    collected values to the server in a single request."""
     config = Config.load()
     try:
         stage = Stage.load()
