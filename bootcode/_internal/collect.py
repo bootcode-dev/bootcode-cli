@@ -22,6 +22,14 @@ def collect_answer_key(tests_path: str, solution_path: str, problem: str) -> lis
     try:
         tests_module = load_module(tests_path)
         solution_module = load_module(solution_path)
+        # Run test_<problem> first (if the stage defines one) so a reference
+        # implementation that fails its own local-check assertions fails loudly
+        # here, at answer-key generation time, instead of silently producing an
+        # answer key from a submit_<problem> that happens not to overlap with
+        # whatever test_<problem> actually asserts.
+        test_fn = getattr(tests_module, f"test_{problem}", None)
+        if test_fn is not None:
+            resolve_and_call(test_fn, solution_module)
         submit_fn = getattr(tests_module, f"submit_{problem}")
         resolve_and_call(submit_fn, solution_module)
     finally:
