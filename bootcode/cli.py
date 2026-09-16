@@ -317,7 +317,10 @@ def run() -> None:
     except AssertionError as exc:
         click.secho(f"FAIL: {_failing_assertion_detail(exc)}", fg="red")
         raise SystemExit(1) from exc
-    except Exception as exc:
+    except (KeyboardInterrupt, SystemExit, GeneratorExit):
+        # Control flow, not a test outcome -- Ctrl-C must stay Ctrl-C.
+        raise
+    except BaseException as exc:
         # Not every unimplemented/broken solution fails with AssertionError
         # or AttributeError -- e.g. a torch-based test touching a stub's
         # `None` return value can raise RuntimeError/TypeError/IndexError
@@ -326,6 +329,14 @@ def run() -> None:
         # broad except below: any exception while running the student's own
         # test is an everyday "solution isn't done yet" outcome, not a
         # bootcode-cli bug -- report it cleanly instead of a raw traceback.
+        #
+        # BaseException rather than Exception on purpose: pytest's outcome
+        # exceptions (pytest.raises' "DID NOT RAISE", pytest.fail/skip)
+        # derive from BaseException so that user code's `except Exception`
+        # can't swallow them -- which also meant they escaped this handler
+        # and reached the student as a ~40-line raw traceback. Stage tests
+        # do use pytest.raises (linalg's shape-assertion checks), so this
+        # path is reached in normal use, not just in theory.
         click.secho(f"FAIL: {exc.__class__.__name__}: {exc}", fg="red")
         if "NoneType" in str(exc):
             # The single most common cause across every stage: the solution
@@ -393,11 +404,16 @@ def submit(debug_: bool) -> None:
     protocol.bind_collector(values.append)
     try:
         resolve_and_call(submit_fn, solution)
-    except Exception as exc:
+    except (KeyboardInterrupt, SystemExit, GeneratorExit):
+        # Control flow, not a submission outcome -- see run()'s handler.
+        raise
+    except BaseException as exc:
         # A broken implementation crashing mid-submit (e.g. indexing an
         # empty list it produced) is just as everyday as a wrong-answer
         # rejection below -- same rationale, same fix: a clean one-line
         # message instead of the student's own exception traceback.
+        # BaseException for the same reason as run(): pytest outcome
+        # exceptions bypass `except Exception`.
         raise click.ClickException(f"submit_{stage.problem}() raised {exc.__class__.__name__}: {exc}") from exc
     finally:
         protocol.unbind()

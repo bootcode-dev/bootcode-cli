@@ -319,6 +319,46 @@ def test_run_fails_cleanly_when_the_test_raises_a_non_assertion_exception(tmp_pa
     assert "FAIL: TypeError" in result.output
 
 
+def test_run_fails_cleanly_when_the_test_raises_a_baseexception_subclass(tmp_path, monkeypatch):
+    # pytest's outcome exceptions (pytest.raises' "DID NOT RAISE",
+    # pytest.fail/skip) derive from BaseException, not Exception, so that
+    # user code's `except Exception` can't swallow them. That also meant a
+    # plain `except Exception` fallback here let them escape to the student
+    # as a raw traceback. Stage tests do use pytest.raises (linalg's
+    # shape-assertion checks), so this is a real path, not a theoretical one.
+    monkeypatch.chdir(tmp_path)
+    (tmp_path / "add.py").write_text("def add(a, b):\n    return a + b\n")
+    (tmp_path / "add_tests.py").write_text(
+        "import pytest\n\n\ndef test_add(add):\n"
+        "    with pytest.raises(AssertionError):\n"
+        "        add(2, 3)\n"
+    )
+    Stage(course_slug="modernai-hw", stage_slug="hw0-add", entry="add.py", tests_file="add_tests.py").save(cwd=tmp_path)
+
+    result = CliRunner().invoke(cli, ["run"])
+
+    assert result.exit_code == 1
+    assert "Traceback" not in result.output
+    assert "DID NOT RAISE" in result.output
+
+
+def test_run_lets_keyboard_interrupt_propagate_instead_of_reporting_it_as_a_failure(tmp_path, monkeypatch):
+    # The BaseException fallback above must not swallow control flow: Ctrl-C
+    # during a long-running stage test is the student interrupting, not a
+    # wrong answer. click turns the propagated KeyboardInterrupt into its
+    # own Abort ("Aborted!", exit 1) -- what matters here is that it never
+    # becomes a "FAIL: KeyboardInterrupt" test outcome.
+    monkeypatch.chdir(tmp_path)
+    (tmp_path / "add.py").write_text("def add(a, b):\n    return a + b\n")
+    (tmp_path / "add_tests.py").write_text("def test_add(add):\n    raise KeyboardInterrupt\n")
+    Stage(course_slug="modernai-hw", stage_slug="hw0-add", entry="add.py", tests_file="add_tests.py").save(cwd=tmp_path)
+
+    result = CliRunner().invoke(cli, ["run"])
+
+    assert "FAIL" not in result.output
+    assert "Aborted" in result.output
+
+
 def test_run_hints_at_a_missing_return_when_the_exception_mentions_nonetype(tmp_path, monkeypatch):
     # Friendlier UX on top of the generic except-Exception fallback above --
     # "not NoneType" appears in the message of most of these stub-returned-
