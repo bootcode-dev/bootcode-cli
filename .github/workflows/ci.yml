@@ -6,12 +6,27 @@ on:
   pull_request:
     branches: [main]
 
+permissions:
+  contents: read
+
 jobs:
   test:
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
     strategy:
+      # 一个版本挂掉不该掩盖其余版本的结果
+      fail-fast: false
       matrix:
-        python-version: ["3.11", "3.12", "3.13"]
+        os: [ubuntu-latest]
+        # 与 pyproject 的 requires-python = ">=3.11" 对齐：声明支持的版本都要
+        # 真的跑一遍，否则 3.14 就成了"声明支持但从未验证"。
+        python-version: ["3.11", "3.12", "3.13", "3.14"]
+        include:
+          # 这个 CLI 的主业是往本地磁盘写文件（pull 写 starter/测试文件、配置
+          # 落在 ~/.config/bootcode），路径、换行、配置目录位置都是跨平台差异
+          # 最大的地方，而学员多在 macOS 上。全矩阵没必要，补一个学员侧 pin 的
+          # 3.12 组合即可。
+          - os: macos-latest
+            python-version: "3.12"
     steps:
       - uses: actions/checkout@v4
 
