@@ -110,13 +110,16 @@ def test_pull_does_not_overwrite_an_existing_local_file_by_default(tmp_path, mon
 
     assert result.exit_code == 0
     assert "my in-progress edit" in (tmp_path / "add.py").read_text()
-    assert "Kept existing local file(s)" in result.output
+    assert "Kept your existing file(s)" in result.output
     assert "add.py" in result.output
     # tests_file is freshly written since it didn't exist locally yet.
     assert (tmp_path / "add_tests.py").exists()
 
 
-def test_pull_overwrites_an_existing_local_file_when_files_yml_opts_in(tmp_path, monkeypatch):
+def test_pull_overwrites_an_existing_local_file_when_the_server_marks_it_overwritable(tmp_path, monkeypatch):
+    # The server sets this for platform-authored files (test harness, shared
+    # scaffolding) so corrections reach students who already pulled; the
+    # student's own solution never carries it.
     monkeypatch.chdir(tmp_path)
     monkeypatch.setenv("BOOTCODE_CONFIG_DIR", str(tmp_path / "config"))
     (tmp_path / "add.py").write_text("stale content\n")
@@ -126,7 +129,7 @@ def test_pull_overwrites_an_existing_local_file_when_files_yml_opts_in(tmp_path,
 
     assert result.exit_code == 0
     assert (tmp_path / "add.py").read_text() == "def add(a, b):\n    return a + b\n"
-    assert "Kept existing local file(s)" not in result.output
+    assert "Kept your existing file(s)" not in result.output
 
 
 def test_pull_writes_a_binary_file_as_raw_bytes_from_base64(tmp_path, monkeypatch):

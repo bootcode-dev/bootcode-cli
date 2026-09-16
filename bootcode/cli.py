@@ -240,13 +240,15 @@ def pull(course_stage: str) -> None:
     ).save(cwd=target_dir)
     click.echo(f"Pulled {course_stage} into the current directory.")
     if kept:
-        click.echo(f"Kept existing local file(s) (not marked overwrite in files.yml): {', '.join(kept)}")
+        click.echo(f"Kept your existing file(s): {', '.join(kept)}")
 
 
 def _write_pulled_files(target_dir: Path, files: list[dict]) -> list[str]:
-    """Writes each pulled file unless it already exists locally and the
-    content author hasn't opted it into files.yml's ``overwrite: true``
-    (default false -- protects a student's in-progress edits on re-pull).
+    """Writes each pulled file unless it already exists locally and the server
+    marked it non-overwritable. That flag mirrors file ownership: files the
+    student edits (their solution) are never clobbered on re-pull, while
+    platform-authored ones (test harness, shared scaffolding) are refreshed so
+    corrections can actually reach them.
     ``binary: true`` files have their ``content`` base64-decoded and written
     as raw bytes instead of text -- everything else keeps the existing UTF-8
     text write path unchanged.
