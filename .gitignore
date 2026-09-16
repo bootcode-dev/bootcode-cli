@@ -11,6 +11,11 @@ venv/
 .mypy_cache/
 .ruff_cache/
 
+# uv 在本仓库里开发时自动生成。不提交：这是个被别人安装的库，消费者只读
+# pyproject 的依赖范围，根本不看这份锁；而 CI 用 pip + 多版本矩阵，锁死单一
+# 解析结果反而与矩阵的意图冲突。若哪天 CI 改用 `uv sync --frozen`，再回来提交它。
+uv.lock
+
 # bootcode CLI runtime artifacts
 .bootcode/
 bootcode-submit-debug-*.txt
