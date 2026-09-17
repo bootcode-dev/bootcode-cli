@@ -1,0 +1,28 @@
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    environment: pypi
+    permissions:
+      # Trusted Publishing 用 OIDC 换取一次性发布凭据，不需要在仓库里存
+      # PyPI API token。
+      id-token: write
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - run: pip install build
+      - run: python -m build
+
+      - uses: pypa/gh-action-pypi-publish@release/v1

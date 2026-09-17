@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "bootcode-cli"
-version = "0.1.0.dev0"
+version = "0.1.0"
 description = "bootcode CLI -- pull/run/submit workflow for bootcode's hidden-answer (cli-hidden) grading protocol."
 requires-python = ">=3.11"
 license = { text = "MIT" }
