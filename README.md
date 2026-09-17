@@ -7,7 +7,7 @@
 需要 Python 3.11+。
 
 ```bash
-pip install "bootcode-cli @ git+https://github.com/bootcode-dev/bootcode-cli.git"
+pip install bootcode-cli
 ```
 
 装完后确认能跑：
